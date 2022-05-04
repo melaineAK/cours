@@ -1,0 +1,93 @@
+---
+title: 'Modélisation en écologie : approches déterministe et stochastique'
+author: "Mélaine Aubry-Kientz"
+date: "27/04/2022"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+```
+
+## Une approche déterministe avec R
+
+```{r determ, echo = TRUE}
+malthus <- function(t, N0, alpha) {
+Nt <- N0 * exp(alpha*t)
+return(Nt)}
+
+# Vous pouvez jouer avec le paramètre alpha
+# Pour reproduire les figures du cours, alpha prendra les valeurs 0.5, 0, ou -0.3
+curve(malthus(t = x, N0 = 10, alpha = -0.3), from = 0, to = 10)
+```
+
+
+## Une approche stochastique avec R
+
+Création d'une fonction qui fait évoluer le nombre d'arbres à chaque pas de temps.
+
+```{r stoch_fct, echo = TRUE}
+Nt2 <- function(Nt1, lambda, p) {
+  # Nombre total d'arbres (à mettre à jour)
+  N <- Nt1
+  # nombre de nouveaux arbres: Poisson
+  N_nouveaux <- sum(rpois(Nt1, lambda))
+  # mise à jour du nombre d'arbres avec les nouveaux
+  N <- N + N_nouveaux
+  # nombre d'arbres morts: Binomale
+  N_morts <- rbinom(1, N, p)
+  # mise à jour du nombre d'arbres en enlevant les morts
+  N <- N - N_morts
+  return(N)
+}
+```
+
+Puis, on met la fonction dans une boucle pour faire évoluer le nombre d'arbres pendant 10 ans.
+
+```{r stoch_evol, echo = TRUE}
+# On stocke les valeurs de N dans un vecteur
+N <- rep(10, 10)
+# On calcule la valeur de N pour chaque pas de temps, en fonction de la valeurs de N au pas de temps précédent
+for (t in 2:10){
+  N[t] <- Nt2(Nt1 = N[t-1], lambda = 1, p = 0.6)
+}
+
+N
+```
+
+Le résultat varie d'une simulation à l'autre, peut faire différentes simulations (ici 20 simulations).
+
+```{r stoch_sim, echo = TRUE}
+N <- matrix(10, 11, 20)
+# On reprend le code précédent et on le répète.
+for (rep in 1:20){
+    for (t in 2:11){
+    N[t,rep] <- Nt2(Nt1 = N[t-1,rep], lambda = 1, p = 0.6)
+  }
+}
+```
+
+Puis on peut tracer les résultats des 5 premières simulations.
+
+```{r stoch_plot, echo = TRUE}
+plot(N[,1], type='l', ylim = c(0,12), ylab = 'N', xlab = "t")
+for (rep in 2:5)
+{
+  lines(N[,rep])
+}
+```
+
+
+## Comparaison 
+
+On peut voir les courbes des deux approches sur le même graphe.
+
+```{r compare, echo = TRUE}
+curve(malthus(t = x, N0 = 10, alpha = -0.3), from = 0, to = 10, ylim=c(0,12), col = 'blue', lwd=2, xlab = "t", ylab = "N")
+for (rep in 1:5)
+{
+  lines(0:10,N[,rep])
+}
+```
+
